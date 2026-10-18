@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vega-custody-sdk"
+version = "0.1.0"
+description = "Chain of record to custody: capsules, append-only DAG, ledger-agnostic mint, three-source store."
+requires-python = ">=3.10"
+dependencies = []
+license = {file = "LICENSE"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
