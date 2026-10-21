@@ -7,7 +7,7 @@
 - ledger
 - store
 
-Tests: 108 tests in 9 files, all passing.
+Tests: 114 tests in 10 files, all passing.
 
 ## DESIGNED ONLY (not built)
 

@@ -12,14 +12,22 @@ import threading
 import time
 
 
-def kill_tree(proc, wait: float = 5.0) -> bool:
-    """Kill the process and its children, then confirm it is gone. True only if confirmed."""
+def kill_tree(proc, wait: float = 5.0, pgid=None) -> bool:
+    """Kill the process and its children, then confirm it is gone. True only if confirmed.
+    POSIX: the group is `pgid` when given, else the process's own group, else (the leader was already reaped, so the OS can no longer tell us its group) the process id,
+    which IS the group id for a child started in its own session (every caller here starts it that way). os.getpgid(pid) alone fails for a reaped leader and used to
+    leave its descendants alive."""
     try:
         if os.name == "nt":
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, timeout=10)
         else:
             import signal
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            if pgid is None:
+                try:
+                    pgid = os.getpgid(proc.pid)
+                except ProcessLookupError:
+                    pgid = proc.pid
+            os.killpg(pgid, signal.SIGKILL)
     except (OSError, subprocess.SubprocessError):
         pass  # reviewed: fall through to the direct kill and the verified wait below, which decide whether it worked
     try:
@@ -109,12 +117,14 @@ class ProcessJob:
     def __init__(self):
         self.handle = None
         self.proc = None
+        self.pgid = None
 
     @classmethod
     def start(cls, argv, stdin=None, stdout=None, stderr=None, cwd=None, env=None, max_processes=32, max_process_bytes=2 * 1024 ** 3):
         job = cls()
         if os.name != "nt":
             job.proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=stdin, stdout=stdout, stderr=stderr, start_new_session=True)
+            job.pgid = job.proc.pid                                                  # a session leader's process id is its group id; kept so the group can still be found after the leader is reaped
             return job
         import ctypes
         from ctypes import wintypes as w
@@ -188,12 +198,13 @@ class ProcessJob:
             if not self._k.QueryInformationJobObject(self.handle, 1, ctypes.byref(acc), ctypes.sizeof(acc), None):
                 return -1                                                            # unknown counts as not contained
             return int(acc.ActiveProcesses)
-        import signal
         try:
-            os.killpg(os.getpgid(self.proc.pid), 0)
+            os.killpg(self.pgid, 0)                                                  # signal 0 only asks: is anything still in the group? (works after the leader is gone)
             return 1
-        except (ProcessLookupError, PermissionError, OSError):
+        except ProcessLookupError:
             return 0
+        except (PermissionError, OSError):
+            return -1                                                                # cannot tell: unknown counts as not contained, like the Windows branch
 
     def kill(self, wait: float = 5.0) -> bool:
         """Kill everything in the job and verify none is left. True only if confirmed."""
@@ -205,7 +216,7 @@ class ProcessJob:
             except subprocess.TimeoutExpired:
                 pass  # reviewed: survivors() below decides whether the kill worked
         else:
-            kill_tree(self.proc, wait)
+            kill_tree(self.proc, wait, pgid=self.pgid)
         deadline = time.time() + wait
         while time.time() < deadline:
             if self.survivors() == 0:

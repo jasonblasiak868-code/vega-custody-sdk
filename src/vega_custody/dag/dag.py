@@ -298,7 +298,7 @@ class Dag:
         return self.locations.record_location(content_entry_hash, location_class, uri, readback_sha256, **extra)
 
     def record_stage(self, stage: str, digest: str, parents=None, **extra):
-        """One layer of the superproof pipeline (capsule, aes-gcm, chacha20, snark/stark ...). Digest only."""
+        """One layer of the superproof pipeline (capsule, aes-gcm, chacha20, a tier-1/2/3 proof ...). Digest only."""
         if not (isinstance(digest, str) and len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)):
             raise RecordRefused("a stage records a sha256 hex digest, never the data itself")
         return self.content.record("STAGE:" + stage, {"stage": stage, "digest": digest, **extra}, parents)

@@ -94,7 +94,7 @@ print('dag verifies:', dag.verify()[0])
 
 ## Tests
 
-108 tests in 9 files, all passing (per STATUS.md / REVIEW.md).
+114 tests in 10 files, all passing (per STATUS.md / REVIEW.md).
 
 Run any test file directly — each is a self-contained script that exits 0 on pass:
 

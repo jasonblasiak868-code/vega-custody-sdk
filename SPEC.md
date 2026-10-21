@@ -4,7 +4,7 @@ Spec v1.0 — 2026-10-19 — describes the published reference implementation as
 
 ## 1. Purpose and scope
 
-This specification covers the reference implementation in `src/vega_custody/` as tested by the 108 tests in 9 files under `tests/`. It specifies:
+This specification covers the reference implementation in `src/vega_custody/` as tested by the 114 tests in 10 files under `tests/`. It specifies:
 
 - **Capsule** — the turn record format, hashing, verification, and chain verification
 - **DAG** — the append-only content chain and location chain (what happened, where it lives)

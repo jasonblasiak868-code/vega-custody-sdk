@@ -5,6 +5,7 @@ What is stored: the commitment's allow-listed metadata and its hash. Never the a
 Mint is atomic across replicas (record-or-refuse). verify() re-reads the ledger off disk and fails closed."""
 import os
 import sys
+import threading
 
 from vega_custody.dag.dag import Chain, DagError, canonical, sha256_hex  # noqa: E402
 from vega_custody.ledger import merkle  # noqa: E402
@@ -35,6 +36,7 @@ class Ledger:
         """commitment_check: fn(commitment) -> bool for commitments of kind WCOMMIT. When given, a WCOMMIT is minted and verified ONLY if its human signature checks out (use
         vega_jacket.humanauth.verify.commitment_signature_checker(public_key)). Without it the ledger trusts whoever holds mint(): hand gates reader() and keep mint inside the commit step."""
         self._commitment_check = commitment_check
+        self._mint_lock = threading.Lock()          # 'already minted?' and 'record the mint' are one step: a commitment is single use even under concurrent callers
         paths, self.degraded = [], []
         for b in backends:
             try:
@@ -66,13 +68,14 @@ class Ledger:
         if self._commitment_check is not None and commitment.get("kind") == "WCOMMIT" and not self._safe_check(commitment):
             raise LedgerRefused("a WCOMMIT must carry a valid human signature: refusing to mint a commitment the human key did not sign")
         leaf = leaf_of(commitment)
-        if leaf in self._leaves:
-            raise LedgerRefused("already minted (a commitment is single use)")
-        try:
-            e = self.chain.record("MINT", {"leaf": leaf, "commitment": commitment})
-        except DagError as exc:
-            raise LedgerRefused(f"mint refused, nothing recorded: {exc}") from exc
-        self._leaves[leaf] = e["entry_hash"]
+        with self._mint_lock:
+            if leaf in self._leaves:
+                raise LedgerRefused("already minted (a commitment is single use)")
+            try:
+                e = self.chain.record("MINT", {"leaf": leaf, "commitment": commitment})
+            except DagError as exc:
+                raise LedgerRefused(f"mint refused, nothing recorded: {exc}") from exc
+            self._leaves[leaf] = e["entry_hash"]
         receipt = {"leaf": leaf, "entry": e["entry_hash"], "seq": e["seq"],
                    "replicas": len(self.chain.paths), "degraded": list(self.degraded)}
         if self.witness is not None and self._pending_count() >= self.batch_size:
