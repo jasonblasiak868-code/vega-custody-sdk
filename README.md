@@ -1,6 +1,10 @@
 # vega-custody-sdk
 ![vega-custody-sdk](assets/tile.svg)
 
+<!-- vega-install-order -->
+> **Build order: 1/1. This kit needs no other Vega kit.** You can install it on its own.
+> Install it with `pip install --no-deps git+https://github.com/jasonblasiak868-code/vega-custody-sdk`. Full steps: [INTEGRATION_GUIDE](https://github.com/jasonblasiak868-code/vega-umbrella-sdk/blob/main/INTEGRATION_GUIDE.md).
+
 The foundation every other Vega SDK writes to. This kit owns the **record** concern: capsules that chain every turn, an append-only DAG of what happened and where it lives, a ledger-agnostic mint that replicates to local disk and an external drive, and a three-source store that only commits when all copies verify. The failure it prevents: an action lands in the world but nothing durably records it, or the record can be quietly edited. Here, writing and recording are the same step — fail closed, hashes only, nothing but the chain.
 
 > **Licensing.** Source-available, not open source. Free for personal use; free for registered small businesses (under US$1M revenue and valuation); everyone else needs a commercial license (see LICENSE; for a commercial license write to jasonblasiak.ai.mail@gmail.com). Patent pending. Draft licence text, not yet reviewed by an attorney.
