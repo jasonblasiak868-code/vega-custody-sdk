@@ -92,8 +92,10 @@ class Ledger:
             return False
 
     def reader(self):
-        """A read-only view (verify and inclusion_proof, no mint). Hand THIS to gates and contained code: whoever holds mint can fabricate a commitment that verifies,
-        so mint belongs only to the commit step that checked a human signature."""
+        """A read-only view (verify and inclusion_proof, no mint) that stops honest code from minting by accident. Hand THIS to gates: whoever holds mint can fabricate a
+        commitment that verifies, so mint belongs only to the commit step that checked a human signature.
+        HONEST LIMIT: this narrows the API; it is NOT a boundary against hostile code in the same process (its bound methods reach the full Ledger through __self__).
+        Hostile code must run in another process, with the ledger files opened read-only."""
         return ReadOnlyLedger(self)
 
     # ---------------------------------------------------------------- verify
@@ -149,7 +151,7 @@ class Ledger:
 
 
 class ReadOnlyLedger:
-    """Exposes verify() and inclusion_proof() only. It holds no mint, no anchor and no chain handle."""
+    """Exposes verify() and inclusion_proof() only, as attributes. It is an API narrowing, not isolation: hostile code in the same process can reach the Ledger through the bound methods' __self__."""
 
     __slots__ = ("verify", "inclusion_proof")
 

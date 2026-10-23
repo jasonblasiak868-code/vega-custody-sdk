@@ -52,6 +52,8 @@ def _prefix_hash(c: dict) -> str:
 
 def make(data, metadata=None, predecessor=None, timestamp=None) -> dict:
     """Seal one turn. `data` is bytes or str. `predecessor` is the previous capsule's prefix_hash (None = first)."""
+    if metadata is not None and not isinstance(metadata, dict):
+        raise CapsuleError("metadata must be a dict")
     metadata = dict(metadata or {})
     if FORBIDDEN_FIELDS.intersection(_names(metadata)):
         raise CapsuleError("metadata may not carry key material")
@@ -67,7 +69,11 @@ def make(data, metadata=None, predecessor=None, timestamp=None) -> dict:
         raw, kind = bytes(data), "bytes"
     else:
         raise CapsuleError("data must be str or bytes")
-    now = time.time() if timestamp is None else float(timestamp)
+    try:
+        now = time.time() if timestamp is None else float(timestamp)
+        datetime.datetime.fromtimestamp(now, datetime.timezone.utc)
+    except (TypeError, ValueError, OverflowError, OSError) as exc:
+        raise CapsuleError("timestamp is not a usable time") from exc
     c = {
         "version": VERSION,
         "data_type": kind,

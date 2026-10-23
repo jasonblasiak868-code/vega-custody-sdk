@@ -135,7 +135,7 @@ class Chain:
         if not path.exists():
             return b"", []
         raw = path.read_bytes()
-        return raw, [json.loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
+        return raw, [json.loads(line) for line in raw.decode("utf-8").split("\n") if line.strip()]  # NOT splitlines(): it also splits at U+2028, U+2029 and U+0085, which json.dumps(ensure_ascii=False) writes raw
 
     def _load(self):
         try:
